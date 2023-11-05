@@ -1,11 +1,5 @@
 package model
 
-import (
-	"errors"
-
-	"gorm.io/gorm"
-)
-
 type User struct {
 	ID       uint   `json:"id" gorm:"primary_key;unique;column:id"`
 	UserName string `json:"username" gorm:"unique;column:user_name"`
@@ -28,7 +22,7 @@ func CreateUser(user *User) error {
 func GetUserInfo(username string) (*User, error) {
 	user := &User{}
 	result := DB.Where("user_name = ?", username).First(user)
-	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+	if result.Error != nil {
 		return nil, result.Error
 	}
 	return user, nil
