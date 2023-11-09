@@ -1,11 +1,13 @@
 package main
 
 import (
+	"dynamic_heart_rates_detection/config"
 	m "dynamic_heart_rates_detection/middleware"
 	"dynamic_heart_rates_detection/model"
 	"dynamic_heart_rates_detection/router"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -56,10 +58,14 @@ func startWeb() {
 
 	router.InitProtect(p)
 
-	log.Fatal(e.Start(":1323"))
+	log.Fatal(e.Start(":" + config.JsonConfiguration.WebPort))
 }
 
 func main() {
+	args := os.Args
+
+	config.InitConfig(args[1])
+
 	// 连接数据库
 	connectDatabase()
 

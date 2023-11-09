@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"dynamic_heart_rates_detection/config"
 	"errors"
 	"strings"
 	"time"
@@ -26,11 +27,11 @@ func GetJwtClaims(c echo.Context) (claims JwtCustomClaims, err error) {
 		return JwtCustomClaims{}, errors.New("请求头不合法")
 	}
 
-	jwt_token := authorization[1]
+	jwtToken := authorization[1]
 	claims = JwtCustomClaims{}
 
-	_, err = jwt.ParseWithClaims(jwt_token, &claims, func(token *jwt.Token) (interface{}, error) {
-		return []byte("Gresham"), nil
+	_, err = jwt.ParseWithClaims(jwtToken, &claims, func(token *jwt.Token) (interface{}, error) {
+		return []byte(config.JsonConfiguration.JwtSecret), nil
 	})
 
 	return claims, err
@@ -50,7 +51,7 @@ func GenerateJWTToken(username string) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
 	// 生成 jwt 令牌
-	jwt, err := token.SignedString([]byte("Gresham"))
+	tokenEncode, err := token.SignedString([]byte(config.JsonConfiguration.JwtSecret))
 
-	return jwt, err
+	return tokenEncode, err
 }

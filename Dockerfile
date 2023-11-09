@@ -30,6 +30,9 @@ WORKDIR /app
 # 从构建阶段复制构建好的文件到最终镜像
 COPY --from=builder /app/main .
 
+# 拷贝配置文件
+COPY ./config.json .
+
 # 添加执行权限
 RUN chmod +x /app/main
 
@@ -37,4 +40,4 @@ RUN chmod +x /app/main
 EXPOSE 1323
 
 # 运行应用
-CMD ["/app/main"]
+CMD ["/app/main", "/app/config.json"]

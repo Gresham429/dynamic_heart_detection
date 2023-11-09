@@ -1,0 +1,11 @@
+{
+    "jwt_secret": "",
+    "database": {
+        "host": "",
+        "user": "",
+        "password": "",
+        "db_name": "",
+        "port": ""
+    },
+    "web_port": ""
+}

@@ -1,6 +1,7 @@
 package model
 
 import (
+	"dynamic_heart_rates_detection/config"
 	"fmt"
 
 	"gorm.io/driver/postgres"
@@ -10,7 +11,8 @@ import (
 var DB *gorm.DB
 
 func InitDatabase() (*gorm.DB, error) {
-	dsn := "host=gresham_db_1 user=gresham password=20040420 dbname=dynamic_heart_rates_detection port=5432 sslmode=disable TimeZone=Asia/Shanghai"
+	dbConfig := config.JsonConfiguration.DB
+	dsn := "host=" + dbConfig.Host + " user=" + dbConfig.User + " password=" + dbConfig.Password + " dbname=" + dbConfig.DBName + " port=" + dbConfig.Port + " sslmode=disable TimeZone=Asia/Shanghai"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 
 	if err != nil {
