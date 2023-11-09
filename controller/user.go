@@ -1,13 +1,12 @@
 package controller
 
 import (
-	m "dynamic_heart_rates_detection/middleware"
+	"dynamic_heart_rates_detection/auth"
 	"dynamic_heart_rates_detection/model"
 	"dynamic_heart_rates_detection/utils"
 	"net/http"
 	"strconv"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -71,7 +70,7 @@ func Login(c echo.Context) error {
 	}
 
 	// 生成 jwt 令牌
-	jwt, err := m.GenerateJWTToken(*user)
+	jwt, err := auth.GenerateJWTToken(user.UserName)
 	if err != nil {
 		return err
 	}
@@ -81,21 +80,9 @@ func Login(c echo.Context) error {
 
 // GetUser - 获取用户信息（需要JWT身份验证）
 func GetUserInfo(c echo.Context) error {
-	// 检查 JWT 令牌是否过期
-	tokenExpired, err := m.IsTokenExpired(c.Request().Header.Get("Authorization"))
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "无法验证令牌"})
-	}
+	user := c.Get("user")
 
-	if tokenExpired {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "令牌已过期"})
-	}
-
-	// 获得 username
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(*m.JwtCustomClaims)
-	username := claims.UserName
-	userInfo, _ := model.GetUserInfo(username)
+	userInfo := user.(*model.User)
 
 	response := map[string]interface{}{
 		"id":           strconv.FormatUint(uint64(userInfo.ID), 10),
@@ -111,20 +98,9 @@ func GetUserInfo(c echo.Context) error {
 
 // UpdateUserInfo - 更新用户信息（需要JWT身份验证）
 func UpdateUserInfo(c echo.Context) error {
-	// 检查 JWT 令牌是否过期
-	tokenExpired, err := m.IsTokenExpired(c.Request().Header.Get("Authorization"))
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "无法验证令牌"})
-	}
+	user := c.Get("user")
 
-	if tokenExpired {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "令牌已过期"})
-	}
-
-	// 获得 username
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(*m.JwtCustomClaims)
-	username := claims.UserName
+	userInfo := user.(*model.User)
 
 	// 从请求中获得需要更新的用户信息
 	updatedInfo := new(model.User)
@@ -133,9 +109,6 @@ func UpdateUserInfo(c echo.Context) error {
 			"error": "Invalid JSON type",
 		})
 	}
-
-	// 从数据库中找到匹配的 user
-	userInfo, _ := model.GetUserInfo(username)
 
 	// 当 JSON 中存在以下信息之一时，更新 user
 	if updatedInfo.Password != "" {
@@ -171,28 +144,11 @@ func UpdateUserInfo(c echo.Context) error {
 
 // DeleteUser - 删除用户（需要JWT身份验证）
 func DeleteUser(c echo.Context) error {
-	// 检查 JWT 令牌是否过期
-	tokenExpired, err := m.IsTokenExpired(c.Request().Header.Get("Authorization"))
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "无法验证令牌"})
-	}
+	user := c.Get("user")
 
-	if tokenExpired {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "令牌已过期"})
-	}
+	userInfo := user.(*model.User)
 
-	// 获得 username
-	user := c.Get("user").(*jwt.Token)
-	claims := user.Claims.(*m.JwtCustomClaims)
-	username := claims.UserName
-
-	// 查找是否注册该用户的信息
-	_, err = model.GetUserInfo(username)
-	if err != nil {
-		return c.JSON(http.StatusUnauthorized, map[string]string{"error": "未注册"})
-	}
-
-	err = model.DeleteUser(username)
+	err := model.DeleteUser(userInfo.UserName)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "删除用户失败"})
 	}

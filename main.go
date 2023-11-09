@@ -8,8 +8,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/golang-jwt/jwt/v5"
-	echojwt "github.com/labstack/echo-jwt/v4"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"gorm.io/gorm"
@@ -54,15 +52,7 @@ func startWeb() {
 
 	p := gAPI.Group("/protected")
 
-	// 配置 JWT 的中间件
-	config := echojwt.Config{
-		NewClaimsFunc: func(c echo.Context) jwt.Claims {
-			return new(m.JwtCustomClaims)
-		},
-		SigningKey: []byte("Gresham"),
-	}
-
-	p.Use(echojwt.WithConfig(config))
+	p.Use(m.JwtMiddleware)
 
 	router.InitProtect(p)
 
