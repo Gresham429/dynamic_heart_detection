@@ -24,9 +24,9 @@ func ConnectDevice(c echo.Context) error {
 	}
 
 	// 检查设备是否存在
-	ExistingDevice, _ := model.GetDeviceInfo(device.Url)
+	existingDevice, _ := model.GetDeviceInfo(device.Url)
 
-	if ExistingDevice != nil {
+	if existingDevice != nil {
 		// 如果存在，则更新设备信息
 		model.UpdateDevice(device)
 	} else {
@@ -54,9 +54,9 @@ func DisconnectDevice(c echo.Context) error {
 	}
 
 	// 检查设备是否存在
-	ExistingDevice, _ := model.GetDeviceInfo(device.Url)
+	existingDevice, _ := model.GetDeviceInfo(device.Url)
 
-	if ExistingDevice != nil {
+	if existingDevice != nil {
 		// 如果存在，则更新设备信息
 		model.UpdateDevice(device)
 	} else {

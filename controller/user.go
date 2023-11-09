@@ -22,19 +22,19 @@ func Register(c echo.Context) error {
 	}
 
 	// 检查用户是否已经存在
-	ExistingUser, _ := model.GetUserInfo(user.UserName)
-	if ExistingUser != nil {
+	existingUser, _ := model.GetUserInfo(user.UserName)
+	if existingUser != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "用户名已存在",
 		})
 	}
 
 	// 对密码进行哈希处理
-	HashPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	hashPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
-	user.Password = string(HashPassword)
+	user.Password = string(hashPassword)
 
 	// 创建用户
 	if err := model.CreateUser(user); err != nil {
@@ -48,15 +48,15 @@ func Register(c echo.Context) error {
 
 // Login - 用户登录(生成JWT令牌)
 func Login(c echo.Context) error {
-	LoginUser := new(model.User)
-	if err := c.Bind(LoginUser); err != nil {
+	loginUser := new(model.User)
+	if err := c.Bind(loginUser); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "Invalid request",
 		})
 	}
 
 	// 检索用户信息
-	user, _ := model.GetUserInfo(LoginUser.UserName)
+	user, _ := model.GetUserInfo(loginUser.UserName)
 	if user == nil {
 		return c.JSON(http.StatusUnauthorized, map[string]string{
 			"error": "用户名或密码错误",
@@ -64,7 +64,7 @@ func Login(c echo.Context) error {
 	}
 
 	// 核对密码信息
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(LoginUser.Password)); err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginUser.Password)); err != nil {
 		return c.JSON(http.StatusUnauthorized, map[string]string{
 			"error": "用户名或密码错误",
 		})
@@ -95,15 +95,15 @@ func GetUserInfo(c echo.Context) error {
 	user := c.Get("user").(*jwt.Token)
 	claims := user.Claims.(*m.JwtCustomClaims)
 	username := claims.UserName
-	UserInfo, _ := model.GetUserInfo(username)
+	userInfo, _ := model.GetUserInfo(username)
 
 	response := map[string]interface{}{
-		"id":           strconv.FormatUint(uint64(UserInfo.ID), 10),
-		"username":     UserInfo.UserName,
-		"full_name":    utils.GetValueOrEmptyString(UserInfo.FullName),
-		"email":        utils.GetValueOrEmptyString(UserInfo.Email),
-		"phone_number": utils.GetValueOrEmptyString(UserInfo.PhoneNumber),
-		"address":      utils.GetValueOrEmptyString(UserInfo.Address),
+		"id":           strconv.FormatUint(uint64(userInfo.ID), 10),
+		"username":     userInfo.UserName,
+		"full_name":    utils.GetValueOrEmptyString(userInfo.FullName),
+		"email":        utils.GetValueOrEmptyString(userInfo.Email),
+		"phone_number": utils.GetValueOrEmptyString(userInfo.PhoneNumber),
+		"address":      utils.GetValueOrEmptyString(userInfo.Address),
 	}
 
 	return c.JSON(http.StatusOK, response)

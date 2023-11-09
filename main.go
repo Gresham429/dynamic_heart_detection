@@ -15,7 +15,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func ConnectDatabase() {
+func connectDatabase() {
 	var db *gorm.DB
 	var err error
 
@@ -31,7 +31,7 @@ func ConnectDatabase() {
 	log.Println("Connecte database successfully!")
 }
 
-func StartWeb() {
+func startWeb() {
 	e := echo.New()
 
 	e.Use(middleware.Logger())
@@ -71,10 +71,10 @@ func StartWeb() {
 
 func main() {
 	// 连接数据库
-	ConnectDatabase()
+	connectDatabase()
 
 	// 启动 Web
-	StartWeb()
+	startWeb()
 
 	// 关闭数据库连接
 	defer model.CloseDatabase()
