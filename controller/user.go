@@ -80,9 +80,18 @@ func Login(c echo.Context) error {
 
 // GetUser - 获取用户信息（需要JWT身份验证）
 func GetUserInfo(c echo.Context) error {
-	user := c.Get("user")
+	userName, ok := c.Get("user_name").(string)
 
-	userInfo := user.(*model.User)
+	if !ok {
+		// 类型断言失败，处理错误
+		return c.JSON(http.StatusInternalServerError, "无法将 user_name 转换为字符串")
+	}
+
+	userInfo, err := model.GetUserInfo(userName)
+
+	if err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, err)
+	}
 
 	response := map[string]interface{}{
 		"id":           strconv.FormatUint(uint64(userInfo.ID), 10),
@@ -98,9 +107,18 @@ func GetUserInfo(c echo.Context) error {
 
 // UpdateUserInfo - 更新用户信息（需要JWT身份验证）
 func UpdateUserInfo(c echo.Context) error {
-	user := c.Get("user")
+	userName, ok := c.Get("user_name").(string)
 
-	userInfo := user.(*model.User)
+	if !ok {
+		// 类型断言失败，处理错误
+		return c.JSON(http.StatusInternalServerError, "无法将 user_name 转换为字符串")
+	}
+
+	userInfo, err := model.GetUserInfo(userName)
+
+	if err != nil {
+		return c.JSON(http.StatusUnprocessableEntity, err)
+	}
 
 	// 从请求中获得需要更新的用户信息
 	updatedInfo := new(model.User)
@@ -144,11 +162,14 @@ func UpdateUserInfo(c echo.Context) error {
 
 // DeleteUser - 删除用户（需要JWT身份验证）
 func DeleteUser(c echo.Context) error {
-	user := c.Get("user")
+	userName, ok := c.Get("user_name").(string)
 
-	userInfo := user.(*model.User)
+	if !ok {
+		// 类型断言失败，处理错误
+		return c.JSON(http.StatusInternalServerError, "无法将 user_name 转换为字符串")
+	}
 
-	err := model.DeleteUser(userInfo.UserName)
+	err := model.DeleteUser(userName)
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "删除用户失败"})
 	}

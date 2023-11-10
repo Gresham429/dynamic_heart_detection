@@ -2,47 +2,46 @@ package middleware
 
 import (
 	"dynamic_heart_rates_detection/auth"
-	"dynamic_heart_rates_detection/model"
+	"dynamic_heart_rates_detection/config"
 	"net/http"
-	"time"
+	"strings"
 
+	"github.com/golang-jwt/jwt"
 	"github.com/labstack/echo/v4"
-	"gorm.io/gorm"
 )
 
 func JwtMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		claims, err := auth.GetJwtClaims(c)
+		// 获得 JWT token string
+		authorization := strings.Split(c.Request().Header.Get("Authorization"), " ")
 
-		if err != nil {
+		if len(authorization) < 2 {
 			return c.JSON(http.StatusUnauthorized, "请求头不合法")
 		}
 
-		if claims.Valid() != nil {
+		if authorization[0] != "Bearer" {
 			return c.JSON(http.StatusUnauthorized, "请求头不合法")
 		}
 
-		if claims.ExpiresAt < time.Now().Unix() {
-			return c.JSON(http.StatusUnauthorized, "请求头已过期")
-		}
+		tokenString := authorization[1]
 
-		user, err := model.GetUserInfo(claims.UserName)
-
-		if err != nil {
-			if err == gorm.ErrRecordNotFound {
-				return c.JSON(http.StatusUnauthorized, "该 JWT Token 对应的用户已不存在")
-			}
-			return c.JSON(http.StatusInternalServerError, "数据库查询错误")
-		}
-
-		c.Set("user", &model.User{
-			ID:          user.ID,
-			UserName:    user.UserName,
-			FullName:    user.FullName,
-			Email:       user.Email,
-			PhoneNumber: user.PhoneNumber,
-			Address:     user.Address,
+		// 验证 JWT token
+		parsedToken, err := jwt.ParseWithClaims(tokenString, &auth.JwtCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+			return []byte(config.JsonConfiguration.JwtSecret), nil
 		})
+
+		if err != nil {
+			return c.JSON(http.StatusUnauthorized, err)
+		}
+
+		// 获取声明
+		claims, ok := parsedToken.Claims.(*auth.JwtCustomClaims)
+
+		if !ok || !parsedToken.Valid {
+			return c.JSON(http.StatusUnauthorized, "Token 不合法")
+		}
+
+		c.Set("user_name", claims.UserName)
 
 		return next(c)
 	}
