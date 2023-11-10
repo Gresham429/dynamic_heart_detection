@@ -29,5 +29,9 @@ func InitConfig(path string) {
 		panic(err)
 	}
 
-	json.Unmarshal(file, &JsonConfiguration)
+	err = json.Unmarshal(file, &JsonConfiguration)
+
+	if err != nil {
+		panic(err)
+	}
 }
