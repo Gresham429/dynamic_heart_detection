@@ -41,7 +41,7 @@ func JwtMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 			return c.JSON(http.StatusUnauthorized, "Token 不合法")
 		}
 
-		c.Set("user_name", claims.UserName)
+		c.Set("username", claims.UserName)
 
 		return next(c)
 	}
