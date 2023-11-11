@@ -38,6 +38,12 @@ func Register(c echo.Context) error {
 		})
 	}
 
+	if registerUser.UserName == "" || registerUser.Password == "" {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "用户名和密码不可以为空",
+		})
+	}
+
 	// 对密码进行哈希处理
 	hashPassword, err := bcrypt.GenerateFromPassword([]byte(registerUser.Password), bcrypt.DefaultCost)
 	if err != nil {
