@@ -3,7 +3,6 @@ package controller
 import (
 	"dynamic_heart_rates_detection/auth"
 	"dynamic_heart_rates_detection/model"
-	"dynamic_heart_rates_detection/utils"
 	"net/http"
 	"strconv"
 
@@ -11,29 +10,45 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type registerRequest struct {
+	UserName string `json:"username"`
+	Password string `json:"password"`
+}
+
 // Register - 用户注册
 func Register(c echo.Context) error {
-	user := new(model.User)
-	if err := c.Bind(user); err != nil {
+	registerUser := new(registerRequest)
+	if err := c.Bind(registerUser); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "Invalid JSON type",
 		})
 	}
 
 	// 检查用户是否已经存在
-	existingUser, _ := model.GetUserInfo(user.UserName)
+	existingUser, err := model.GetUserInfo(registerUser.UserName)
 	if existingUser != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "用户名已存在",
 		})
 	}
 
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": err.Error(),
+		})
+	}
+
 	// 对密码进行哈希处理
-	hashPassword, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	hashPassword, err := bcrypt.GenerateFromPassword([]byte(registerUser.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
-	user.Password = string(hashPassword)
+	registerUser.Password = string(hashPassword)
+
+	user := new(model.User)
+
+	user.UserName = registerUser.UserName
+	user.Password = registerUser.Password
 
 	// 创建用户
 	if err := model.CreateUser(user); err != nil {
@@ -45,9 +60,14 @@ func Register(c echo.Context) error {
 	})
 }
 
+type loginRequest struct {
+	UserName string `json:"username"`
+	Password string `json:"password"`
+}
+
 // Login - 用户登录(生成JWT令牌)
 func Login(c echo.Context) error {
-	loginUser := new(model.User)
+	loginUser := new(loginRequest)
 	if err := c.Bind(loginUser); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "Invalid request",
@@ -55,10 +75,16 @@ func Login(c echo.Context) error {
 	}
 
 	// 检索用户信息
-	user, _ := model.GetUserInfo(loginUser.UserName)
+	user, err := model.GetUserInfo(loginUser.UserName)
 	if user == nil {
 		return c.JSON(http.StatusUnauthorized, map[string]string{
 			"error": "用户名或密码错误",
+		})
+	}
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": err.Error(),
 		})
 	}
 
@@ -80,7 +106,7 @@ func Login(c echo.Context) error {
 
 // GetUser - 获取用户信息（需要JWT身份验证）
 func GetUserInfo(c echo.Context) error {
-	userName, ok := c.Get("user_name").(string)
+	userName, ok := c.Get("username").(string)
 
 	if !ok {
 		// 类型断言失败，处理错误
@@ -96,18 +122,27 @@ func GetUserInfo(c echo.Context) error {
 	response := map[string]interface{}{
 		"id":           strconv.FormatUint(uint64(userInfo.ID), 10),
 		"username":     userInfo.UserName,
-		"full_name":    utils.GetValueOrEmptyString(userInfo.FullName),
-		"email":        utils.GetValueOrEmptyString(userInfo.Email),
-		"phone_number": utils.GetValueOrEmptyString(userInfo.PhoneNumber),
-		"address":      utils.GetValueOrEmptyString(userInfo.Address),
+		"full_name":    userInfo.FullName,
+		"email":        userInfo.Email,
+		"phone_number": userInfo.PhoneNumber,
+		"address":      userInfo.Address,
 	}
 
 	return c.JSON(http.StatusOK, response)
 }
 
+type updateRequest struct {
+	UserName    string `json:"username" gorm:"unique;column:user_name"`
+	Password    string `json:"password" gorm:"column:password"`
+	FullName    string `json:"full_name,omitempty" gorm:"column:full_name"`
+	Email       string `json:"email,omitempty" gorm:"unique;column:email"`
+	PhoneNumber string `json:"phone_number,omitempty" gorm:"unique;column:phone_number"`
+	Address     string `json:"address,omitempty" gorm:"column:address"`
+}
+
 // UpdateUserInfo - 更新用户信息（需要JWT身份验证）
 func UpdateUserInfo(c echo.Context) error {
-	userName, ok := c.Get("user_name").(string)
+	userName, ok := c.Get("username").(string)
 
 	if !ok {
 		// 类型断言失败，处理错误
@@ -121,7 +156,7 @@ func UpdateUserInfo(c echo.Context) error {
 	}
 
 	// 从请求中获得需要更新的用户信息
-	updatedInfo := new(model.User)
+	updatedInfo := new(updateRequest)
 	if err := c.Bind(updatedInfo); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "Invalid JSON type",
@@ -131,22 +166,30 @@ func UpdateUserInfo(c echo.Context) error {
 	// 当 JSON 中存在以下信息之一时，更新 user
 	if updatedInfo.Password != "" {
 		// 对密码进行哈希处理
-		HashPassword, err := bcrypt.GenerateFromPassword([]byte(updatedInfo.Password), bcrypt.DefaultCost)
+		hashPassword, err := bcrypt.GenerateFromPassword([]byte(updatedInfo.Password), bcrypt.DefaultCost)
 		if err != nil {
 			return err
 		}
-		userInfo.Password = string(HashPassword)
+		userInfo.Password = string(hashPassword)
 	}
-	if updatedInfo.FullName != nil {
+
+	if updatedInfo.UserName != "" {
+		userInfo.UserName = updatedInfo.UserName
+	}
+
+	if updatedInfo.FullName != "" {
 		userInfo.FullName = updatedInfo.FullName
 	}
-	if updatedInfo.Email != nil {
+
+	if updatedInfo.Email != "" {
 		userInfo.Email = updatedInfo.Email
 	}
-	if updatedInfo.PhoneNumber != nil {
+
+	if updatedInfo.PhoneNumber != "" {
 		userInfo.PhoneNumber = updatedInfo.PhoneNumber
 	}
-	if updatedInfo.Address != nil {
+
+	if updatedInfo.Address != "" {
 		userInfo.Address = updatedInfo.Address
 	}
 
@@ -162,7 +205,7 @@ func UpdateUserInfo(c echo.Context) error {
 
 // DeleteUser - 删除用户（需要JWT身份验证）
 func DeleteUser(c echo.Context) error {
-	userName, ok := c.Get("user_name").(string)
+	userName, ok := c.Get("username").(string)
 
 	if !ok {
 		// 类型断言失败，处理错误

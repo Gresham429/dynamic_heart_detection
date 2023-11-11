@@ -6,10 +6,10 @@ type User struct {
 	Password string `json:"password" gorm:"column:password"`
 
 	// 可为空字段
-	FullName    *string `json:"full_name,omitempty" gorm:"column:full_name"`
-	Email       *string `json:"email,omitempty" gorm:"unique;column:email"`
-	PhoneNumber *string `json:"phone_number,omitempty" gorm:"unique;column:phone_number"`
-	Address     *string `json:"address,omitempty" gorm:"column:address"`
+	FullName    string `json:"full_name,omitempty" gorm:"column:full_name"`
+	Email       string `json:"email,omitempty" gorm:"unique;column:email"`
+	PhoneNumber string `json:"phone_number,omitempty" gorm:"unique;column:phone_number"`
+	Address     string `json:"address,omitempty" gorm:"column:address"`
 }
 
 // Create - 创建用户

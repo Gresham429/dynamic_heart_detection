@@ -7,24 +7,35 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+type connectRequest struct {
+	Url       string `json:"url"`
+	Position  string `json:"position"`
+	Connected bool   `json:"connected"`
+}
+
 // ConnectDevice - 设备连接
 func ConnectDevice(c echo.Context) error {
-	device := new(model.Device)
-	if err := c.Bind(device); err != nil {
+	requestDevice := new(connectRequest)
+	if err := c.Bind(requestDevice); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "Invalid JSON type",
 		})
 	}
 
 	// 设备连接错误
-	if !device.Connected {
+	if !requestDevice.Connected {
 		return c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "设备连接错误",
 		})
 	}
 
 	// 检查设备是否存在
-	existingDevice, _ := model.GetDeviceInfo(device.Url)
+	existingDevice, _ := model.GetDeviceInfo(requestDevice.Url)
+
+	device := new(model.Device)
+	device.Connected = requestDevice.Connected
+	device.Url = requestDevice.Url
+	device.Position = requestDevice.Position
 
 	if existingDevice != nil {
 		// 如果存在，则更新设备信息
@@ -39,25 +50,36 @@ func ConnectDevice(c echo.Context) error {
 	})
 }
 
+type disconnectRequest struct {
+	Url       string `json:"url"`
+	Position  string `json:"position"`
+	Connected bool   `json:"connected"`
+}
+
 func DisconnectDevice(c echo.Context) error {
-	device := new(model.Device)
-	if err := c.Bind(device); err != nil {
+	requestDevice := new(disconnectRequest)
+	if err := c.Bind(requestDevice); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "Invalid JSON type",
 		})
 	}
 
-	if device.Connected {
+	if requestDevice.Connected {
 		return c.JSON(http.StatusBadRequest, map[string]string{
 			"error": "设备状态错误",
 		})
 	}
 
 	// 检查设备是否存在
-	existingDevice, _ := model.GetDeviceInfo(device.Url)
+	existingDevice, _ := model.GetDeviceInfo(requestDevice.Url)
 
 	if existingDevice != nil {
 		// 如果存在，则更新设备信息
+		device := new(model.Device)
+		device.Connected = requestDevice.Connected
+		device.Url = requestDevice.Url
+		device.Position = requestDevice.Position
+
 		model.UpdateDevice(device)
 	} else {
 		return c.JSON(http.StatusCreated, map[string]string{
