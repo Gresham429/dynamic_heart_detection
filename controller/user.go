@@ -4,7 +4,6 @@ import (
 	"dynamic_heart_rates_detection/auth"
 	"dynamic_heart_rates_detection/model"
 	"net/http"
-	"strconv"
 
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
@@ -19,29 +18,21 @@ type registerRequest struct {
 func Register(c echo.Context) error {
 	registerUser := new(registerRequest)
 	if err := c.Bind(registerUser); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Invalid JSON type",
-		})
+		return c.JSON(http.StatusBadRequest, Response{Error: "Invalid JSON type"})
 	}
 
 	// 检查用户是否已经存在
 	existingUser, err := model.GetUserInfo(registerUser.UserName)
 	if existingUser != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "用户名已存在",
-		})
+		return c.JSON(http.StatusBadRequest, Response{Error: "用户名已存在"})
 	}
 
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": err.Error(),
-		})
+		return c.JSON(http.StatusInternalServerError, Response{Error: err.Error()})
 	}
 
 	if registerUser.UserName == "" || registerUser.Password == "" {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "用户名和密码不可以为空",
-		})
+		return c.JSON(http.StatusInternalServerError, Response{Error: "用户名和密码不可以为空"})
 	}
 
 	// 对密码进行哈希处理
@@ -51,19 +42,17 @@ func Register(c echo.Context) error {
 	}
 	registerUser.Password = string(hashPassword)
 
-	user := new(model.User)
-
-	user.UserName = registerUser.UserName
-	user.Password = registerUser.Password
+	user := &model.User{
+		UserName: registerUser.UserName,
+		Password: registerUser.Password,
+	}
 
 	// 创建用户
 	if err := model.CreateUser(user); err != nil {
 		return err
 	}
 
-	return c.JSON(http.StatusCreated, map[string]string{
-		"message": "注册成功",
-	})
+	return c.JSON(http.StatusCreated, Response{Message: "注册成功"})
 }
 
 type loginRequest struct {
@@ -71,34 +60,30 @@ type loginRequest struct {
 	Password string `json:"password"`
 }
 
+type loginResponse struct {
+	Token string `json:"token"`
+}
+
 // Login - 用户登录(生成JWT令牌)
 func Login(c echo.Context) error {
 	loginUser := new(loginRequest)
 	if err := c.Bind(loginUser); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Invalid request",
-		})
+		return c.JSON(http.StatusBadRequest, Response{Error: "Invalid request"})
 	}
 
 	// 检索用户信息
 	user, err := model.GetUserInfo(loginUser.UserName)
 	if user == nil {
-		return c.JSON(http.StatusUnauthorized, map[string]string{
-			"error": "用户名或密码错误",
-		})
+		return c.JSON(http.StatusUnauthorized, Response{Error: "用户名或密码错误"})
 	}
 
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": err.Error(),
-		})
+		return c.JSON(http.StatusInternalServerError, Response{Error: err.Error()})
 	}
 
 	// 核对密码信息
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(loginUser.Password)); err != nil {
-		return c.JSON(http.StatusUnauthorized, map[string]string{
-			"error": "用户名或密码错误",
-		})
+		return c.JSON(http.StatusUnauthorized, Response{Error: "用户名或密码错误"})
 	}
 
 	// 生成 jwt 令牌
@@ -107,7 +92,17 @@ func Login(c echo.Context) error {
 		return err
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{"token": jwt})
+	response := loginResponse{Token: jwt}
+
+	return c.JSON(http.StatusOK, Response{Data: response})
+}
+
+type userInfoResponse struct {
+	UserName    string `json:"username,omitempty"`
+	FullName    string `json:"full_name,omitempty"`
+	Email       string `json:"email,omitempty"`
+	PhoneNumber string `json:"phone_number,omitempty"`
+	Address     string `json:"address,omitempty"`
 }
 
 // GetUser - 获取用户信息（需要JWT身份验证）
@@ -116,34 +111,33 @@ func GetUserInfo(c echo.Context) error {
 
 	if !ok {
 		// 类型断言失败，处理错误
-		return c.JSON(http.StatusInternalServerError, "无法将 user_name 转换为字符串")
+		return c.JSON(http.StatusInternalServerError, Response{Error: "无法将 user_name 转换为字符串"})
 	}
 
 	userInfo, err := model.GetUserInfo(userName)
 
 	if err != nil {
-		return c.JSON(http.StatusUnprocessableEntity, err)
+		return c.JSON(http.StatusUnprocessableEntity, Response{Error: err.Error()})
 	}
 
-	response := map[string]interface{}{
-		"id":           strconv.FormatUint(uint64(userInfo.ID), 10),
-		"username":     userInfo.UserName,
-		"full_name":    userInfo.FullName,
-		"email":        userInfo.Email,
-		"phone_number": userInfo.PhoneNumber,
-		"address":      userInfo.Address,
+	response := userInfoResponse{
+		UserName:    userInfo.UserName,
+		FullName:    userInfo.FullName,
+		Email:       userInfo.Email,
+		PhoneNumber: userInfo.PhoneNumber,
+		Address:     userInfo.Address,
 	}
 
-	return c.JSON(http.StatusOK, response)
+	return c.JSON(http.StatusOK, Response{Data: response})
 }
 
 type updateRequest struct {
-	UserName    string `json:"username" gorm:"unique;column:user_name"`
-	Password    string `json:"password" gorm:"column:password"`
-	FullName    string `json:"full_name,omitempty" gorm:"column:full_name"`
-	Email       string `json:"email,omitempty" gorm:"unique;column:email"`
-	PhoneNumber string `json:"phone_number,omitempty" gorm:"unique;column:phone_number"`
-	Address     string `json:"address,omitempty" gorm:"column:address"`
+	UserName    string `json:"username,omitempty"`
+	Password    string `json:"password,omitempty"`
+	FullName    string `json:"full_name,omitempty"`
+	Email       string `json:"email,omitempty"`
+	PhoneNumber string `json:"phone_number,omitempty"`
+	Address     string `json:"address,omitempty"`
 }
 
 // UpdateUserInfo - 更新用户信息（需要JWT身份验证）
@@ -152,7 +146,7 @@ func UpdateUserInfo(c echo.Context) error {
 
 	if !ok {
 		// 类型断言失败，处理错误
-		return c.JSON(http.StatusInternalServerError, "无法将 user_name 转换为字符串")
+		return c.JSON(http.StatusInternalServerError, Response{Error: "无法将 user_name 转换为字符串"})
 	}
 
 	userInfo, err := model.GetUserInfo(userName)
@@ -164,9 +158,7 @@ func UpdateUserInfo(c echo.Context) error {
 	// 从请求中获得需要更新的用户信息
 	updatedInfo := new(updateRequest)
 	if err := c.Bind(updatedInfo); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Invalid JSON type",
-		})
+		return c.JSON(http.StatusBadRequest, Response{Error: "Invalid JSON type"})
 	}
 
 	// 当 JSON 中存在以下信息之一时，更新 user
@@ -201,12 +193,10 @@ func UpdateUserInfo(c echo.Context) error {
 
 	// Save the updated user information to the database
 	if err := model.UpdateUser(userInfo); err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "无法更新用户信息",
-		})
+		return c.JSON(http.StatusInternalServerError, Response{Error: "无法更新用户信息"})
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{"message": "成功更新用户信息"})
+	return c.JSON(http.StatusOK, Response{Message: "成功更新用户信息"})
 }
 
 // DeleteUser - 删除用户（需要JWT身份验证）
@@ -215,13 +205,13 @@ func DeleteUser(c echo.Context) error {
 
 	if !ok {
 		// 类型断言失败，处理错误
-		return c.JSON(http.StatusInternalServerError, "无法将 user_name 转换为字符串")
+		return c.JSON(http.StatusInternalServerError, Response{Error: "无法将 user_name 转换为字符串"})
 	}
 
 	err := model.DeleteUser(userName)
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "删除用户失败"})
+		return c.JSON(http.StatusInternalServerError, Response{Error: "删除用户失败"})
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{"message": "删除用户成功"})
+	return c.JSON(http.StatusOK, Response{Message: "删除用户成功"})
 }

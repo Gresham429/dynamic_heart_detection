@@ -3,6 +3,7 @@ package middleware
 import (
 	"dynamic_heart_rates_detection/auth"
 	"dynamic_heart_rates_detection/config"
+	"dynamic_heart_rates_detection/controller"
 	"net/http"
 	"strings"
 
@@ -16,11 +17,11 @@ func JwtMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		authorization := strings.Split(c.Request().Header.Get("Authorization"), " ")
 
 		if len(authorization) < 2 {
-			return c.JSON(http.StatusUnauthorized, "请求头不合法")
+			return c.JSON(http.StatusUnauthorized, controller.Response{Error: "请求头不合法"})
 		}
 
 		if authorization[0] != "Bearer" {
-			return c.JSON(http.StatusUnauthorized, "请求头不合法")
+			return c.JSON(http.StatusUnauthorized, controller.Response{Error: "请求头不合法"})
 		}
 
 		tokenString := authorization[1]
@@ -31,14 +32,14 @@ func JwtMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
 		})
 
 		if err != nil {
-			return c.JSON(http.StatusUnauthorized, err)
+			return c.JSON(http.StatusUnauthorized, controller.Response{Error: err.Error()})
 		}
 
 		// 获取声明
 		claims, ok := parsedToken.Claims.(*auth.JwtCustomClaims)
 
 		if !ok || !parsedToken.Valid {
-			return c.JSON(http.StatusUnauthorized, "Token 不合法")
+			return c.JSON(http.StatusUnauthorized, controller.Response{Error: "Token 解析信息错误"})
 		}
 
 		c.Set("username", claims.UserName)

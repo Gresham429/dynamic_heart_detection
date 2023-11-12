@@ -1,15 +1,21 @@
 package model
 
+import (
+	"errors"
+
+	"gorm.io/gorm"
+)
+
 type User struct {
-	ID       uint   `json:"id" gorm:"primary_key;unique;column:id"`
-	UserName string `json:"username" gorm:"unique;column:user_name"`
-	Password string `json:"password" gorm:"column:password"`
+	ID       uint   `gorm:"primary_key;unique;column:id"`
+	UserName string `gorm:"unique;column:user_name"`
+	Password string `gorm:"column:password"`
 
 	// 可为空字段
-	FullName    string `json:"full_name,omitempty" gorm:"column:full_name"`
-	Email       string `json:"email,omitempty" gorm:"unique;column:email"`
-	PhoneNumber string `json:"phone_number,omitempty" gorm:"unique;column:phone_number"`
-	Address     string `json:"address,omitempty" gorm:"column:address"`
+	FullName    string `gorm:"column:full_name"`
+	Email       string `gorm:"unique;column:email"`
+	PhoneNumber string `gorm:"unique;column:phone_number"`
+	Address     string `gorm:"column:address"`
 }
 
 // Create - 创建用户
@@ -22,7 +28,9 @@ func CreateUser(user *User) error {
 func GetUserInfo(username string) (*User, error) {
 	user := &User{}
 	result := DB.Where("user_name = ?", username).First(user)
-	if result.Error != nil {
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
+	} else if result.Error != nil {
 		return nil, result.Error
 	}
 	return user, nil
