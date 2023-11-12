@@ -72,7 +72,7 @@ func DisconnectDevice(c echo.Context) error {
 
 		model.UpdateDevice(device)
 	} else {
-		return c.JSON(http.StatusCreated, Response{Error: "设备不存在"})
+		return c.JSON(http.StatusBadRequest, Response{Error: "设备不存在"})
 	}
 
 	return c.NoContent(http.StatusNoContent)
