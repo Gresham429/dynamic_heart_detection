@@ -49,7 +49,7 @@ func Register(c echo.Context) error {
 
 	// 创建用户
 	if err := model.CreateUser(user); err != nil {
-		return err
+		return c.JSON(http.StatusInternalServerError, Response{Error: err.Error()})
 	}
 
 	return c.JSON(http.StatusCreated, Response{Message: "注册成功"})
@@ -98,11 +98,10 @@ func Login(c echo.Context) error {
 }
 
 type userInfoResponse struct {
-	UserName    string `json:"username,omitempty"`
-	FullName    string `json:"full_name,omitempty"`
-	Email       string `json:"email,omitempty"`
-	PhoneNumber string `json:"phone_number,omitempty"`
-	Address     string `json:"address,omitempty"`
+	UserName string `json:"username,omitempty"`
+	FullName string `json:"full_name,omitempty"`
+	Email    string `json:"email,omitempty"`
+	Address  string `json:"address,omitempty"`
 }
 
 // GetUser - 获取用户信息（需要JWT身份验证）
@@ -121,23 +120,21 @@ func GetUserInfo(c echo.Context) error {
 	}
 
 	response := userInfoResponse{
-		UserName:    userInfo.UserName,
-		FullName:    userInfo.FullName,
-		Email:       userInfo.Email,
-		PhoneNumber: userInfo.PhoneNumber,
-		Address:     userInfo.Address,
+		UserName: userInfo.UserName,
+		FullName: userInfo.FullName,
+		Email:    userInfo.Email,
+		Address:  userInfo.Address,
 	}
 
 	return c.JSON(http.StatusOK, Response{Data: response})
 }
 
 type updateRequest struct {
-	UserName    string `json:"username,omitempty"`
-	Password    string `json:"password,omitempty"`
-	FullName    string `json:"full_name,omitempty"`
-	Email       string `json:"email,omitempty"`
-	PhoneNumber string `json:"phone_number,omitempty"`
-	Address     string `json:"address,omitempty"`
+	UserName string `json:"username"`
+	Password string `json:"password"`
+	FullName string `json:"full_name"`
+	Email    string `json:"email"`
+	Address  string `json:"address"`
 }
 
 // UpdateUserInfo - 更新用户信息（需要JWT身份验证）
@@ -181,10 +178,6 @@ func UpdateUserInfo(c echo.Context) error {
 
 	if updatedInfo.Email != "" {
 		userInfo.Email = updatedInfo.Email
-	}
-
-	if updatedInfo.PhoneNumber != "" {
-		userInfo.PhoneNumber = updatedInfo.PhoneNumber
 	}
 
 	if updatedInfo.Address != "" {

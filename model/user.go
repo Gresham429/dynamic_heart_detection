@@ -8,14 +8,13 @@ import (
 
 type User struct {
 	ID       uint   `gorm:"primary_key;unique;column:id"`
-	UserName string `gorm:"unique;column:user_name"`
+	UserName string `gorm:"primary_key;unique;column:user_name"`
 	Password string `gorm:"column:password"`
 
 	// 可为空字段
-	FullName    string `gorm:"column:full_name"`
-	Email       string `gorm:"unique;column:email"`
-	PhoneNumber string `gorm:"unique;column:phone_number"`
-	Address     string `gorm:"column:address"`
+	FullName string `gorm:"column:full_name,default:NULL"`
+	Email    string `gorm:"column:email,default:NULL"`
+	Address  string `gorm:"column:address,default:NULL"`
 }
 
 // Create - 创建用户
