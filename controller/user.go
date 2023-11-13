@@ -89,7 +89,7 @@ func Login(c echo.Context) error {
 	// 生成 jwt 令牌
 	jwt, err := auth.GenerateJWTToken(user.UserName)
 	if err != nil {
-		return err
+		return c.JSON(http.StatusUnauthorized, Response{Error: err.Error()})
 	}
 
 	response := loginResponse{Token: jwt}
