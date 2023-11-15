@@ -8,8 +8,8 @@ import (
 
 type Device struct {
 	ID        uint   `json:"id" gorm:"primary_key;unique;column:id"`
-	Url       string `json:"url" gorm:"unique;colum:url"`
-	Position  string `json:"position" gorm:"unique;colum:position"`
+	Url       string `json:"url" gorm:"colum:url"`
+	Position  string `json:"position" gorm:"colum:position"`
 	Connected bool   `json:"connected" gorm:"colum:connected"`
 }
 
@@ -45,7 +45,8 @@ func GetAllDevices() ([]Device, error) {
 	var devices []Device
 
 	// 执行查询，并将结果存储在 data 切片中
-	if err := DB.Find(&devices).Error; err != nil {
+	err := DB.Find(&devices).Error
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 

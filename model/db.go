@@ -21,6 +21,7 @@ func InitDatabase() (*gorm.DB, error) {
 
 	// 自动迁移模型
 	db.AutoMigrate(&User{})
+	db.AutoMigrate(&Device{})
 
 	DB = db
 
