@@ -28,16 +28,19 @@ func ConnectDevice(c echo.Context) error {
 	// 检查设备是否存在
 	existingDevice, _ := model.GetDeviceInfo(requestDevice.Url)
 
-	device := new(model.Device)
-	device.Connected = requestDevice.Connected
-	device.Url = requestDevice.Url
-	device.Position = requestDevice.Position
-
 	if existingDevice != nil {
 		// 如果存在，则更新设备信息
-		model.UpdateDevice(device)
+		existingDevice.Connected = requestDevice.Connected
+		existingDevice.Position = requestDevice.Position
+
+		model.UpdateDevice(existingDevice)
 	} else {
 		// 如果不存在就新建一条记录
+		device := new(model.Device)
+		device.Connected = requestDevice.Connected
+		device.Url = requestDevice.Url
+		device.Position = requestDevice.Position
+
 		model.CreateDevice(device)
 	}
 
@@ -65,12 +68,10 @@ func DisconnectDevice(c echo.Context) error {
 
 	if existingDevice != nil {
 		// 如果存在，则更新设备信息
-		device := new(model.Device)
-		device.Connected = requestDevice.Connected
-		device.Url = requestDevice.Url
-		device.Position = requestDevice.Position
+		existingDevice.Connected = requestDevice.Connected
+		existingDevice.Position = requestDevice.Position
 
-		model.UpdateDevice(device)
+		model.UpdateDevice(existingDevice)
 	} else {
 		return c.JSON(http.StatusBadRequest, Response{Error: "设备不存在"})
 	}
