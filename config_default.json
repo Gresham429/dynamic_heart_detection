@@ -7,5 +7,10 @@
         "db_name": "",
         "port": ""
     },
+    "redis": {
+        "addr": "",
+        "password": "",
+        "db_index": 0
+    },
     "web_port": ""
 }

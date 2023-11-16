@@ -36,13 +36,15 @@ func initPostgres() error {
 
 // 初始化 redis
 func initRedis() error {
-	ctx := context.Background()
+	redisConfig := config.JsonConfiguration.RDB
 
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "gresham_rdb_1:6379",
-		Password: "20040420", // no password set
-		DB:       0,          // use default DB
+		Addr:     redisConfig.Addr,
+		Password: redisConfig.Password, // no password set
+		DB:       redisConfig.DBIndex,  // use default DB
 	})
+
+	ctx := context.Background()
 
 	_, err := rdb.Ping(ctx).Result()
 	if err != nil {

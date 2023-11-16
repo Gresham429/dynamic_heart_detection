@@ -13,9 +13,16 @@ type DataBase struct {
 	Port     string `json:"port"`
 }
 
+type Redis struct {
+	Addr     string `json:"addr"`
+	Password string `json:"password"`
+	DBIndex  int    `json:"db_index"`
+}
+
 type Conf struct {
 	JwtSecret string   `json:"jwt_secret"`
 	DB        DataBase `json:"database"`
+	RDB       Redis    `json:"redis"`
 	WebPort   string   `json:"web_port"`
 }
 
