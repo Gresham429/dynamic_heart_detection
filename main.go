@@ -7,28 +7,10 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"gorm.io/gorm"
 )
-
-func connectDatabase() {
-	var db *gorm.DB
-	var err error
-
-	for db == nil {
-		db, err = model.InitDatabase()
-		if err != nil {
-			log.Printf("Error connecting to the database: %v\n", err)
-			log.Println("Retrying in 5 seconds...")
-			time.Sleep(5 * time.Second)
-		}
-	}
-
-	log.Println("Connecte database successfully!")
-}
 
 func startWeb() {
 	e := echo.New()
@@ -60,7 +42,7 @@ func main() {
 	config.InitConfig(args[1])
 
 	// 连接数据库
-	connectDatabase()
+	model.ConnectDatabase()
 
 	// 启动 Web
 	startWeb()
