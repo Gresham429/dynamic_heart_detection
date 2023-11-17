@@ -1,14 +1,16 @@
 package model
 
 import (
+	"context"
 	"errors"
+	"time"
 
 	"gorm.io/gorm"
 )
 
 type User struct {
-	ID       uint   `gorm:"primary_key;unique;column:id"`
-	UserName string `gorm:"primary_key;unique;column:user_name"`
+	ID       uint   `gorm:"primary_email;unique;column:id"`
+	UserName string `gorm:"primary_email;unique;column:user_name"`
 	Password string `gorm:"column:password"`
 
 	// 可为空字段
@@ -45,4 +47,40 @@ func UpdateUser(user *User) error {
 func DeleteUser(username string) error {
 	result := DB.Where("user_name = ?", username).Delete(&User{})
 	return result.Error
+}
+
+// StoreVerificationCode - 存储 6 位的邮箱验证码(会覆盖前一次的验证码)
+func StoreVerificationCode(email string, verificationCode string, ctx context.Context) error {
+	err := RDB.Set(ctx, "verificationCode:"+email, verificationCode, 5*time.Minute).Err()
+
+	if err != nil {
+		return err
+	}
+
+	err = RDB.Set(ctx, "lastSentTime:"+email, time.Now().Unix(), 0).Err()
+
+	return err
+}
+
+// CleanVerificationCode - 清除邮箱验证码信息
+func CleanVerificationCode(email string, ctx context.Context) error {
+	err := RDB.Del(ctx, "verificationCode:"+email).Err()
+
+	if err != nil {
+		return err
+	}
+
+	err = RDB.Del(ctx, "lastSentTime:"+email).Err()
+
+	return err
+}
+
+func GetVerificationCode(email string, ctx context.Context) error {
+	err := RDB.Get(ctx, "verificationCode:"+email).Err()
+	return err
+}
+
+func GetLastSentTime(email string, ctx context.Context) error {
+	err := RDB.Get(ctx, "lastSentTime:"+email).Err()
+	return err
 }
