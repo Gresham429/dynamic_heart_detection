@@ -2,6 +2,8 @@ package auth
 
 import (
 	"dynamic_heart_rates_detection/config"
+	"fmt"
+	"math/rand"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -13,6 +15,7 @@ type JwtCustomClaims struct {
 	jwt.StandardClaims
 }
 
+// 生成 JWT Token
 func GenerateJWTToken(username string) (string, error) {
 	// 设置 claims
 	claims := &JwtCustomClaims{
@@ -30,4 +33,10 @@ func GenerateJWTToken(username string) (string, error) {
 	tokenEncode, err := token.SignedString([]byte(config.JsonConfiguration.JwtSecret))
 
 	return tokenEncode, err
+}
+
+// 生成 6 位邮箱验证码
+func GenerateVerificationCode() string {
+	rand.NewSource(time.Now().Unix())
+	return fmt.Sprintf("%6d", rand.Intn(1000000))
 }
