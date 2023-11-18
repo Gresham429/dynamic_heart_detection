@@ -4,6 +4,8 @@ import (
 	"dynamic_heart_rates_detection/auth"
 	"dynamic_heart_rates_detection/model"
 	"net/http"
+	"strconv"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
@@ -116,7 +118,7 @@ func GetUserInfo(c echo.Context) error {
 	userInfo, err := model.GetUserInfo(userName)
 
 	if err != nil {
-		return c.JSON(http.StatusUnprocessableEntity, Response{Error: err.Error()})
+		return c.JSON(http.StatusInternalServerError, Response{Error: err.Error()})
 	}
 
 	response := userInfoResponse{
@@ -147,9 +149,8 @@ func UpdateUserInfo(c echo.Context) error {
 	}
 
 	userInfo, err := model.GetUserInfo(userName)
-
 	if err != nil {
-		return c.JSON(http.StatusUnprocessableEntity, err)
+		return c.JSON(http.StatusInternalServerError, err)
 	}
 
 	// 从请求中获得需要更新的用户信息
@@ -174,10 +175,6 @@ func UpdateUserInfo(c echo.Context) error {
 
 	if updatedInfo.FullName != "" {
 		userInfo.FullName = updatedInfo.FullName
-	}
-
-	if updatedInfo.Email != "" {
-		userInfo.Email = updatedInfo.Email
 	}
 
 	if updatedInfo.Address != "" {
@@ -207,4 +204,118 @@ func DeleteUser(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, Response{Message: "删除用户成功"})
+}
+
+// SendVerificationCode - 发送 6 位邮箱验证码
+func SendVerificationCode(c echo.Context) error {
+	ctx := c.Request().Context()
+	email := c.Param("email")
+
+	// 检查发送频率
+	lastSentTime, err := model.GetLastSentTime(email, ctx)
+	if err == nil {
+		lastSentTimeInt, _ := strconv.ParseInt(lastSentTime, 10, 64)
+		if time.Now().Unix()-lastSentTimeInt < 60 {
+			return c.JSON(http.StatusBadRequest, Response{Error: "验证码发送频率过高，请稍后重试。"})
+		}
+	}
+
+	// 生成验证码
+	verificationCode := auth.GenerateVerificationCode()
+
+	// 存储验证码和有效期到 Redis
+	model.StoreVerificationCode(email, verificationCode, ctx)
+
+	// 在这里发送邮件，使用生成的验证码
+	auth.SendEmail(email, verificationCode)
+
+	return c.JSON(http.StatusOK, Response{Message: "验证码已发送，请查收。"})
+}
+
+type registerEmailRequest struct {
+	UserName   string `json:"username"`
+	Email      string `json:"email"`
+	VerifyCode string `json:"verifyCode"`
+}
+
+// RegisterEmail - 验证邮箱验证码
+func RegisterEmail(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	request := new(registerEmailRequest)
+	if err := c.Bind(request); err != nil {
+		return c.JSON(http.StatusBadRequest, Response{Error: "无效的请求数据。"})
+	}
+
+	// 检查邮箱是否被注册
+	existingUser, err := model.GetUserByEmail(request.Email)
+	if existingUser != nil {
+		return c.JSON(http.StatusBadRequest, Response{Error: "邮箱已被注册"})
+	}
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, Response{Error: err.Error()})
+	}
+
+	// 验证验证码
+	err = auth.VerifyVerificationCode(request.VerifyCode, request.Email, ctx)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Response{Error: err.Error()})
+	}
+
+	// 更新用户信息
+	updateUser, err := model.GetUserInfo(request.UserName)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+
+	updateUser.Email = request.Email
+
+	// Save the updated user information to the database
+	if err := model.UpdateUser(updateUser); err != nil {
+		return c.JSON(http.StatusInternalServerError, Response{Error: "无法注册用户邮箱"})
+	}
+
+	return c.JSON(http.StatusOK, Response{Message: "验证码验证成功。"})
+}
+
+type loginWithEmailRequest struct {
+	Email      string `json:"email"`
+	VerifyCode string `json:"verifyCode"`
+}
+
+// LoginWithEmail - 邮箱验证登录
+func LoginWithEmail(c echo.Context) error {
+	ctx := c.Request().Context()
+
+	request := new(loginWithEmailRequest)
+	if err := c.Bind(request); err != nil {
+		return c.JSON(http.StatusBadRequest, Response{Error: "无效的请求数据。"})
+	}
+
+	// 查询邮箱是否被注册
+	existingUser, err := model.GetUserByEmail(request.Email)
+	if existingUser == nil {
+		return c.JSON(http.StatusBadRequest, Response{Error: "邮箱未被注册"})
+	}
+
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, Response{Error: err.Error()})
+	}
+
+	// 验证验证码
+	err = auth.VerifyVerificationCode(request.VerifyCode, request.Email, ctx)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Response{Error: err.Error()})
+	}
+
+	// 生成 jwt 令牌
+	jwt, err := auth.GenerateJWTToken(existingUser.UserName)
+	if err != nil {
+		return c.JSON(http.StatusUnauthorized, Response{Error: err.Error()})
+	}
+
+	response := loginResponse{Token: jwt}
+
+	return c.JSON(http.StatusOK, Response{Data: response})
 }
