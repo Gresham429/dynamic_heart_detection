@@ -34,6 +34,20 @@ func GetUserInfo(username string) (*User, error) {
 	} else if result.Error != nil {
 		return nil, result.Error
 	}
+
+	return user, nil
+}
+
+func GetUserByEmail(email string) (*User, error) {
+	user := &User{}
+	result := DB.Where("email = ?", email).First(user)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return nil, nil
+	} else if result.Error != nil {
+		return nil, result.Error
+	}
+
 	return user, nil
 }
 
