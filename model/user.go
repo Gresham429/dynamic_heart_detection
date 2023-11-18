@@ -75,12 +75,12 @@ func CleanVerificationCode(email string, ctx context.Context) error {
 	return err
 }
 
-func GetVerificationCode(email string, ctx context.Context) error {
-	err := RDB.Get(ctx, "verificationCode:"+email).Err()
-	return err
+func GetVerificationCode(email string, ctx context.Context) (string, error) {
+	verificationCode, err := RDB.Get(ctx, "verificationCode:"+email).Result()
+	return verificationCode, err
 }
 
-func GetLastSentTime(email string, ctx context.Context) error {
-	err := RDB.Get(ctx, "lastSentTime:"+email).Err()
-	return err
+func GetLastSentTime(email string, ctx context.Context) (string, error) {
+	lastSentTime, err := RDB.Get(ctx, "lastSentTime:"+email).Result()
+	return lastSentTime, err
 }
