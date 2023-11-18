@@ -40,3 +40,8 @@ func GenerateVerificationCode() string {
 	rand.NewSource(time.Now().Unix())
 	return fmt.Sprintf("%6d", rand.Intn(1000000))
 }
+
+func SendEmail(email, verificationCode string) {
+	// 在这里实现发送邮件的逻辑，使用你选择的邮件服务或库
+	fmt.Printf("发送邮件至 %s，验证码为: %s\n", email, verificationCode)
+}
