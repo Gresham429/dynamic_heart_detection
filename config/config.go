@@ -19,10 +19,19 @@ type Redis struct {
 	DBIndex  int    `json:"db_index"`
 }
 
+type SMTP struct {
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	From     string `json:"from"`
+	Password string `json:"password"`
+	Nickname string `json:"nickname"`
+}
+
 type Conf struct {
 	JwtSecret string   `json:"jwt_secret"`
 	DB        DataBase `json:"database"`
 	RDB       Redis    `json:"redis"`
+	Smtp      SMTP     `json:"smtp"`
 	WebPort   string   `json:"web_port"`
 }
 

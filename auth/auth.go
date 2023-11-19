@@ -49,16 +49,18 @@ func GenerateVerificationCode() string {
 
 // 发送邮箱验证码
 func SendEmail(email, verificationCode, userName string) error {
+	smtpConf := config.JsonConfiguration.Smtp
+
 	// 发件人邮箱和密码
-	from := "1543732388@qq.com"
-	password := "oocqkxaqwvpqhgcd"
+	from := smtpConf.From
+	password := smtpConf.Password
 
 	// 收件人邮箱
 	to := email
 
 	// SMTP 服务器地址和端口
-	smtpHost := "smtp.qq.com"
-	smtpPort := 587
+	smtpHost := smtpConf.Host
+	smtpPort := smtpConf.Port
 
 	// 设置邮件标头
 	fromAddress := mail.Address{Name: "", Address: from}
