@@ -209,7 +209,12 @@ func DeleteUser(c echo.Context) error {
 // SendVerificationCode - 发送 6 位邮箱验证码
 func SendVerificationCode(c echo.Context) error {
 	ctx := c.Request().Context()
-	email := c.Param("email")
+	email := c.QueryParam("email")
+	userName := c.QueryParam("username")
+
+	if email == "" || userName == "" {
+		return c.JSON(http.StatusBadRequest, Response{Error: "param 参数缺失"})
+	}
 
 	// 检查发送频率
 	lastSentTime, err := model.GetLastSentTime(email, ctx)
@@ -223,11 +228,14 @@ func SendVerificationCode(c echo.Context) error {
 	// 生成验证码
 	verificationCode := auth.GenerateVerificationCode()
 
+	// 在这里发送邮件，使用生成的验证码
+	err = auth.SendEmail(email, verificationCode, userName)
+	if err != nil {
+		return c.JSON(http.StatusInternalServerError, Response{Error: err.Error()})
+	}
+
 	// 存储验证码和有效期到 Redis
 	model.StoreVerificationCode(email, verificationCode, ctx)
-
-	// 在这里发送邮件，使用生成的验证码
-	auth.SendEmail(email, verificationCode)
 
 	return c.JSON(http.StatusOK, Response{Message: "验证码已发送，请查收。"})
 }
@@ -235,7 +243,7 @@ func SendVerificationCode(c echo.Context) error {
 type registerEmailRequest struct {
 	UserName   string `json:"username"`
 	Email      string `json:"email"`
-	VerifyCode string `json:"verifyCode"`
+	VerifyCode string `json:"verify_code"`
 }
 
 // RegisterEmail - 验证邮箱验证码
@@ -281,7 +289,7 @@ func RegisterEmail(c echo.Context) error {
 
 type loginWithEmailRequest struct {
 	Email      string `json:"email"`
-	VerifyCode string `json:"verifyCode"`
+	VerifyCode string `json:"verify_code"`
 }
 
 // LoginWithEmail - 邮箱验证登录

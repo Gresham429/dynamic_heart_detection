@@ -4,9 +4,12 @@ import (
 	"context"
 	"dynamic_heart_rates_detection/config"
 	"dynamic_heart_rates_detection/model"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"math/rand"
+	"net/mail"
+	"net/smtp"
 	"time"
 
 	"github.com/golang-jwt/jwt"
@@ -45,13 +48,46 @@ func GenerateVerificationCode() string {
 }
 
 // 发送邮箱验证码
-func SendEmail(email, verificationCode string) {
-	// 在这里实现发送邮件的逻辑，使用你选择的邮件服务或库
-	fmt.Printf("发送邮件至 %s，验证码为: %s\n", email, verificationCode)
+func SendEmail(email, verificationCode, userName string) error {
+	// 发件人邮箱和密码
+	from := "1543732388@qq.com"
+	password := "oocqkxaqwvpqhgcd"
+
+	// 收件人邮箱
+	to := email
+
+	// SMTP 服务器地址和端口
+	smtpHost := "smtp.qq.com"
+	smtpPort := 587
+
+	// 设置邮件标头
+	fromAddress := mail.Address{Name: "", Address: from}
+	toAddress := mail.Address{Name: "", Address: to}
+
+	// 设置昵称
+	nickname := "南笙"
+	nicknameEncoded := base64.StdEncoding.EncodeToString([]byte(nickname))
+	fromHeader := fmt.Sprintf("=?utf-8?B?%s?=%s", nicknameEncoded, fromAddress.Address)
+
+	// 邮件标头
+	message := "Subject: Your Subject\r\n" +
+		"From: " + fromHeader + "\r\n" +
+		"To: " + toAddress.String() + "\r\n" +
+		"\r\n" +
+		"亲爱的" + userName + "：\n" + "您的验证码是：" + verificationCode + "。请在五分钟内完成注册"
+
+	// 连接到 SMTP 服务器
+	auth := smtp.PlainAuth("", from, password, smtpHost)
+	err := smtp.SendMail(smtpHost+":"+fmt.Sprint(smtpPort), auth, from, []string{to}, []byte(message))
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // VerifyVerificationCode - 验证邮箱验证码
-func VerifyVerificationCode(verificationCode string, email string, ctx context.Context) error {
+func VerifyVerificationCode(verificationCode, email string, ctx context.Context) error {
 	// 验证验证码
 	storedCode, err := model.GetVerificationCode(email, ctx)
 	if err != nil {

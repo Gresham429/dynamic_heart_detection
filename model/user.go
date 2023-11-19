@@ -9,13 +9,13 @@ import (
 )
 
 type User struct {
-	ID       uint   `gorm:"primary_email;unique;column:id"`
-	UserName string `gorm:"primary_email;unique;column:user_name"`
+	ID       uint   `gorm:"primaryKey;unique;column:id"`
+	UserName string `gorm:"primaryKey;unique;column:user_name"`
 	Password string `gorm:"column:password"`
+	Email    string `gorm:"column:email"`
 
 	// 可为空字段
 	FullName string `gorm:"column:full_name,default:NULL"`
-	Email    string `gorm:"column:email,default:NULL"`
 	Address  string `gorm:"column:address,default:NULL"`
 }
 
