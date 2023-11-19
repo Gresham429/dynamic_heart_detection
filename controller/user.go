@@ -23,6 +23,10 @@ func Register(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, Response{Error: "Invalid JSON type"})
 	}
 
+	if registerUser.UserName == "" || registerUser.Password == "" {
+		return c.JSON(http.StatusBadRequest, Response{Error: "用户名和密码不可以为空"})
+	}
+
 	// 检查用户是否已经存在
 	existingUser, err := model.GetUserInfo(registerUser.UserName)
 	if existingUser != nil {
@@ -31,10 +35,6 @@ func Register(c echo.Context) error {
 
 	if err != nil {
 		return c.JSON(http.StatusInternalServerError, Response{Error: err.Error()})
-	}
-
-	if registerUser.UserName == "" || registerUser.Password == "" {
-		return c.JSON(http.StatusInternalServerError, Response{Error: "用户名和密码不可以为空"})
 	}
 
 	// 对密码进行哈希处理
@@ -135,7 +135,6 @@ type updateRequest struct {
 	UserName string `json:"username"`
 	Password string `json:"password"`
 	FullName string `json:"full_name"`
-	Email    string `json:"email"`
 	Address  string `json:"address"`
 }
 
