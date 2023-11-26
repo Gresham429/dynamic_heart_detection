@@ -2,6 +2,7 @@ package main
 
 import (
 	"dynamic_heart_rates_detection/config"
+	"dynamic_heart_rates_detection/controller"
 	"dynamic_heart_rates_detection/model"
 	"dynamic_heart_rates_detection/router"
 	"log"
@@ -32,6 +33,8 @@ func startWeb() {
 
 	gDevice := gAPI.Group("/device")
 	router.InitDevice(gDevice)
+
+	e.GET("/ws", controller.HeartRate)
 
 	log.Fatal(e.Start(":" + config.JsonConfiguration.WebPort))
 }
