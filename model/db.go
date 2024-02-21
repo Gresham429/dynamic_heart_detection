@@ -3,8 +3,7 @@ package model
 import (
 	"context"
 	"dynamic_heart_rates_detection/config"
-	"fmt"
-	"log"
+	logger "dynamic_heart_rates_detection/log"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -63,24 +62,24 @@ func ConnectDatabase() {
 	for DB == nil {
 		err = initPostgres()
 		if err != nil {
-			log.Printf("Error connecting to the postgres: %v\n", err)
-			log.Println("Retrying in 5 seconds...")
+			logger.Logger.Error("Error connecting to the postgres: ", err)
+			logger.Logger.Warn("Retrying in 5 seconds...")
 			time.Sleep(5 * time.Second)
 		}
 	}
 
-	log.Println("Connecte postgres successfully!")
+	logger.Logger.Info("Connect postgres successfully!")
 
 	for RDB == nil {
 		err = initRedis()
 		if err != nil {
-			log.Printf("Error connecting to the redis: %v\n", err)
-			log.Println("Retrying in 5 seconds...")
+			logger.Logger.Error("Error connecting to the redis: ", err)
+			logger.Logger.Warn("Retrying in 5 seconds...")
 			time.Sleep(5 * time.Second)
 		}
 	}
 
-	log.Println("Connecte redis successfully!")
+	logger.Logger.Info("Connect redis successfully!")
 }
 
 // 关闭 postgres 与 redis
@@ -88,19 +87,19 @@ func CloseDatabase() {
 	if DB != nil {
 		db, err := DB.DB()
 		if err != nil {
-			fmt.Println("Error getting underlying database:", err)
+			logger.Logger.Error("Error getting underlying database:", err)
 		}
 
 		// 关闭 postgres 连接
 		if err := db.Close(); err != nil {
-			fmt.Println("Error closing postgres:", err)
+			logger.Logger.Error("Error closing postgres:", err)
 		}
 	}
 
 	if RDB != nil {
 		// 关闭 redis 连接
 		if err := RDB.Close(); err != nil {
-			fmt.Println("Error closing redis:", err)
+			logger.Logger.Error("Error closing redis:", err)
 		}
 	}
 }

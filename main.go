@@ -5,7 +5,7 @@ import (
 	"dynamic_heart_rates_detection/controller"
 	"dynamic_heart_rates_detection/model"
 	"dynamic_heart_rates_detection/router"
-	"log"
+	logger "dynamic_heart_rates_detection/log"
 	"net/http"
 	"os"
 
@@ -36,13 +36,19 @@ func startWeb() {
 
 	e.GET("/ws", controller.HeartRate)
 
-	log.Fatal(e.Start(":" + config.JsonConfiguration.WebPort))
+	logger.Logger.Fatal(e.Start(":" + config.JsonConfiguration.WebPort))
 }
 
 func main() {
 	args := os.Args
 
+	// 初始化配置
 	config.InitConfig(args[1])
+
+	// 初始化日志
+	logger.InitLogger()
+
+	logger.Logger.Info("Logger initialized")
 
 	// 连接数据库
 	model.ConnectDatabase()
